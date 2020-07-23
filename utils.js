@@ -187,7 +187,7 @@ const renameDeadChannel = async (channelId) => {
         }
 
         const chnanelName = await channelInfo.channel.name;
-        if (await getChannelId(`zzz-${channelName}`) != null) {
+        if ((await getChannelId(`zzz-${channelName}`)) != null) {
             //this means the zzz- channel already exists! that's bad.
             console.log(
                 `An archived channel with this name already exists! We can't archive it.`
