@@ -123,7 +123,7 @@ const getOldChannels = async (age) => {
 
         channels = channels.channels;
 
-        for (channel of channels) {
+        for (let channel of channels) {
             if (!channel.is_member) {
                 await joinChannel(channel.id);
             }
