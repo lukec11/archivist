@@ -15,7 +15,7 @@ const blocks = require('./blocks.js');
  * Verifies whether or not a request from slack is legitimate
  * @param {Object} req | the express request object
  */
-const checkSigningSecret = async (req) => {
+const checkSigningSecret = (req) => {
     const reqSignature = req.headers['x-slack-signature'];
     const reqTs = req.headers['x-slack-request-timestamp'];
 
