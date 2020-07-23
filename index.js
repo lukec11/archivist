@@ -22,10 +22,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const blocks = require('./blocks.js');
 const utils = require('./utils.js');
 
-app.post('/slack/interactions', async (req, res) => {
-    console.log(req.body);
-});
-
 app.post('/slack/archive-init', async (req, res) => {
     //use body-parser to combat slack urlencoded weirdness
     let { user_id, trigger_id } = req.body;
