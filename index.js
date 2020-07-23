@@ -22,6 +22,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const blocks = require('./blocks.js');
 const utils = require('./utils.js');
 
+//regexes
+const checkChannelsRegex = /checkOldChannels/;
+const checkOnlineRegex = /thump\sthump/;
+
 app.post('/slack/archive-init', async (req, res) => {
     //use body-parser to combat slack urlencoded weirdness
     let { user_id, trigger_id } = req.body;
@@ -40,6 +44,22 @@ app.post('/slack/archive-init', async (req, res) => {
         trigger_id: trigger_id,
         view: blocks.requestInit(),
     });
+});
+
+slackEvents.on('message', async (event) => {
+    if (event.text.match(checkOnlineRegex)) {
+        await react(event.channel, 'heavy_check_mark', event.ts);
+    } else if (event.text.match(checkChannelsRegex)) {
+        console.log('Checking for outdated channels!');
+        const outdatedChannels = utils.getOldChannels;
+        for (i of outdatedChannels) {
+            utils.renameDeadChannel(i);
+            chat(
+                process.env.SLACK_ADMIN_CHANNEL,
+                `Archived <#${i}> due to inactivity`
+            );
+        }
+    }
 });
 
 slackInteractions.action({ actionId: 'request_archive' }, async (payload) => {
