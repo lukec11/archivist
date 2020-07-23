@@ -1,0 +1,26 @@
+{
+  "name": "archivist",
+  "version": "0.1.0",
+  "description": "Automatically archives old channels for slack - WIP",
+  "main": "index.js",
+  "dependencies": {
+    "@slack/events-api": "^2.3.3",
+    "@slack/interactive-messages": "^1.7.0",
+    "@slack/web-api": "^5.11.0",
+    "crypto": "^1.0.1",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "node-fetch": "^2.6.0",
+    "tsscmp": "^1.0.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "github.com/hackclub/archivist"
+  },
+  "author": "lukec11 <me@lukec.me>",
+  "license": "MIT"
+}
