@@ -22,7 +22,7 @@ const utils = require('./utils.js')
 
 //regexes
 const checkChannelsRegex = /checkOldChannels/
-const checkOnlineRegex = /thump\sthump/
+const checkOnlineRegex = /checkIfOnline/
 
 app.post('/slack/archive-init', async (req, res) => {
   //use body-parser to combat slack urlencoded weirdness
