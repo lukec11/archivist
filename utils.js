@@ -145,7 +145,7 @@ const getClubChannels = async () => {
 	)
 	const clubJson = await clubs.json()
 
-	for (i of clubJson) {
+	for (const i of clubJson) {
 		clubChannels.push(await i.fields['Slack Channel ID'])
 	}
 
@@ -175,7 +175,7 @@ const getOldChannels = async age => {
 			if (!channel.is_member) {
 				await joinChannel(channel.id)
 			}
-	const lastMessage = await wc.conversations.history({
+			const lastMessage = await wc.conversations.history({
 				token: process.env.SLACK_OAUTH_TOKEN, //NOTE: This method has a tier 3 rate limit. Make sure it doesn't execed or there is a catch in place
 				channel: channel.id,
 				limit: 1 //limits to only the last sent message
@@ -198,9 +198,8 @@ const getOldChannels = async age => {
 			const lastMessageTs = await lastMessage.messages[0].ts //gets the unix timestamp of the last message, in seconds
 
 			if (
-				currentDate - (await lastMessageTs) >
-				age // &&
-				//				!clubChannels.includes(channel.id)
+				currentDate - (await lastMessageTs) > age &&
+				clubChannels.includes(channel.id)
 			) {
 				console.log(`Dead channel found: ${channel.id}!`)
 				deadChannels.push(channel.id)
@@ -248,7 +247,6 @@ const renameDeadChannel = async channelId => {
 		}
 
 		renameChannel(channelId, `zzz-${channelName}`)
-			
 	} catch (err) {
 		console.log(`Failed to rename dead channel ${channelId}!`)
 		chat(

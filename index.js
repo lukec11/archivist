@@ -60,7 +60,7 @@ slackEvents.on('message', async event => {
   } else if (event.text.match(checkChannelsRegex)) {
     console.log('Checking for outdated channels!')
     const outdatedChannels = utils.getOldChannels
-    for (i of outdatedChannels) {
+    for (let i of outdatedChannels) {
       utils.renameDeadChannel(i) //renames channel with zzz-
       chat(
         process.env.SLACK_ADMIN_CHANNEL,
