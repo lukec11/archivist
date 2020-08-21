@@ -35,11 +35,11 @@ app.post('/slack/archive-init', async (req, res) => {
 	console.log(
 		`User ${user_id} opened the slash command modal with trigger ID ${trigger_id}`
 	)
-	/*if (!utils.checkSigningSecret(req)) {
+	if (!utils.checkSigningSecret(req)) {
     //checks request to see that the HMAC is correct
     res.status(401).send('Unauthorized')
     throw 'UnauthedAttempt'
-  }*/
+  }
 
 	//send an immediate 200 to slack so they don't complain about timeouts
 	await res.status(200).send('')
