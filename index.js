@@ -73,7 +73,9 @@ slackEvents.on('message', async event => {
       await utils.chat(
         process.env.SLACK_ADMIN_CHANNEL,
         `Archived <#${i}> due to inactivity`
-      ) //exlains the archive
+      ) 
+	  //exlains the archive
+	await utils.chat(i, `<#${i}> has been archived, due to inactivity. If you'd like to unarchive it, run the command \`/unarchive\`.`)	
       await utils.archiveChannel(i)
     }
     console.log('archive job done')
