@@ -55,6 +55,7 @@ const postChannelPoll = async (channelId, user) => {
  */
 const renameChannel = async (channelId, newName) => {
 	return await wc.conversations.rename({
+		token: process.env.SLACK_ADMIN_TOKEN,
 		channel: channelId,
 		name: newName
 	})
@@ -63,7 +64,8 @@ const renameChannel = async (channelId, newName) => {
 /**
  * Uses slack edgeapis to get channel name.
  * The only other method of doing this is collecting every channel and its info whenever someone requests an archive - possible, but slow. This works better but is undocumented.
- * @param {String} channelName - name of a channel to search for
+ * I could also collect & cache at startup - but if someone tries to archive a newly created channel this wouldn't work well.
+ * @param {String} channelName - channel name
  */
 const getChannelId = async channelName => {
 	const res = await fetch(
@@ -82,12 +84,15 @@ const getChannelId = async channelName => {
 		}
 	)
 	const response = await res.json()
-	if (!(await response.results[0].name) === channelName) {
-		throw 'QueryFailed' // Will throw an error if the query doesn't show up with the same channel name typed in - that probably (but not necessarily) means that it's an invalid channel name.
-	}
-	if (!(await response.results.length) === 0) {
+	if (response.results.length === 0 || response.results[0].name !== channelName) {
 		return null //null return if nothing matches
 	}
+	/*
+	 * returns null if:
+	 * There are no results in the response array
+	 * The first name isn't a match for the inputted channel
+	 */
+	
 	return await response.results[0].id
 }
 
@@ -115,7 +120,17 @@ const react = async (channelId, reaction, ts) => {
 		token: process.env.SLACK_OAUTH_TOKEN,
 		channel: channelId,
 		timestamp: ts,
-		reaction: reaction
+		name: reaction
+	})
+}
+
+//literally the opposite of the above
+const unreact = async (channelId, reaction, ts) => {
+	return await wc.reactions.remove({
+		token: process.env.SLACK_OAUTH_TOKEN,
+		channel: channelId,
+		timestamp: ts,
+		name: reaction
 	})
 }
 /**
@@ -163,46 +178,45 @@ const getOldChannels = async age => {
 	let currentDate = getSeconds(new Date())
 
 	try {
-		let channels = await wc.conversations.list({
+		const clubChannels = await getClubChannels()
+		for await (let page of wc.paginate('conversations.list', {
 			token: process.env.SLACK_OAUTH_TOKEN,
-			exclude_archived: true, //don't show already-archived channels
-			limit: 1000 //1000 is max count of channels - can get around this if necessary but it's annoying so not going to bother yet
-		})
+			exclude_archived: true,
+			types: 'public_channel'
+		})) {
+			for (channel of page.channels) {
+				if (!channel.is_member) {
+					await joinChannel(channel.id)
+				}
+				const lastMessage = await wc.conversations.history({
+					token: process.env.SLACK_OAUTH_TOKEN, //NOTE: This method has a tier 3 rate limit. Make sure it doesn't execed or there is a catch in place
+					channel: channel.id,
+					limit: 1 //limits to only the last sent message
+				})
+				if (!(await lastMessage.ok)) {
+					// check if it wasn't able to successfully get the message
+					await chat(
+						process.env.SLACK_ADMIN_CHANNEL,
+						`Experienced an error when getting messages for <#${channel.id}>!`
+					)
+					console.log(`Failed to get messages for #${channel.name}!`)
+					continue
+				}
+				if ((await lastMessage.messages.length) === 0) {
+					console.log(
+						`Couldn't calculate age of #${channel.name} (no messages), ignoring!`
+					)
+					continue
+				}
+				const lastMessageTs = await lastMessage.messages[0].ts //gets the unix timestamp of the last message, in seconds
 
-		channels = channels.channels
-
-		for (let channel of channels) {
-			if (!channel.is_member) {
-				await joinChannel(channel.id)
-			}
-			const lastMessage = await wc.conversations.history({
-				token: process.env.SLACK_OAUTH_TOKEN, //NOTE: This method has a tier 3 rate limit. Make sure it doesn't execed or there is a catch in place
-				channel: channel.id,
-				limit: 1 //limits to only the last sent message
-			})
-			if (!(await lastMessage.ok)) {
-				// check if it wasn't able to successfully get the message
-				await chat(
-					process.env.SLACK_ADMIN_CHANNEL,
-					`Experienced an error when getting messages for <#${channel.id}>!`
-				)
-				console.log(`Failed to get messages for #${channel.name}!`)
-				continue
-			}
-			if ((await lastMessage.messages.length) === 0) {
-				console.log(
-					`Couldn't calculate age of #${channel.name} (no messages), ignoring!`
-				)
-				continue
-			}
-			const lastMessageTs = await lastMessage.messages[0].ts //gets the unix timestamp of the last message, in seconds
-
-			if (
-				currentDate - (await lastMessageTs) > age &&
-				clubChannels.includes(channel.id)
-			) {
-				console.log(`Dead channel found: ${channel.id}!`)
-				deadChannels.push(channel.id)
+				if (
+					currentDate - (await lastMessageTs) > age &&
+					!clubChannels.includes(channel.id)
+				) {
+					console.log(`Dead channel found: ${channel.id}!`)
+					deadChannels.push(channel.id)
+				}
 			}
 		}
 
@@ -225,7 +239,7 @@ const renameDeadChannel = async channelId => {
 
 		if (!(await channelInfo.ok)) {
 			//check for an error in getting channel info
-			chat(
+			await chat(
 				process.env.SLACK_ADMIN_CHANNEL,
 				`Failed to get info for rename on <#${channelId}> :(`
 			)
@@ -233,7 +247,7 @@ const renameDeadChannel = async channelId => {
 			throw 'channelInfoNotGathered'
 		}
 
-		const chnanelName = await channelInfo.channel.name
+		const channelName = channelInfo.channel.name_normalized
 		if ((await getChannelId(`zzz-${channelName}`)) != null) {
 			//this means the zzz- channel already exists! that's bad.
 			console.log(
@@ -248,12 +262,20 @@ const renameDeadChannel = async channelId => {
 
 		renameChannel(channelId, `zzz-${channelName}`)
 	} catch (err) {
+		console.error(err)
 		console.log(`Failed to rename dead channel ${channelId}!`)
 		chat(
 			process.env.SLACK_ADMIN_CHANNEL,
 			`Failed to rename dead channel <#${channelId}>!`
 		)
 	}
+}
+
+const archiveChannel = async (channelId) => {
+	return await wc.conversations.archive({
+		token: process.env.SLACK_ADMIN_TOKEN,
+		channel: channelId
+	})
 }
 
 module.exports = {
@@ -264,8 +286,10 @@ module.exports = {
 	getChannelId,
 	chat,
 	react,
+	unreact,
 	joinChannel,
 	getClubChannels,
 	getOldChannels,
-	renameDeadChannel
+	renameDeadChannel,
+	archiveChannel
 }

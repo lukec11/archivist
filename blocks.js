@@ -90,7 +90,7 @@ const requestUnarchive = () => {
     ]
   }
 }
-const requestInit = () => {
+const requestInit = (uid) => {
   return {
     title: {
       type: 'plain_text',
@@ -109,7 +109,7 @@ const requestInit = () => {
         text: {
           type: 'mrkdwn',
           text:
-            "Hi there <@U012JBKFLUF>, I'm <@A017AQA46BF|Archivist>! I can help you out with all of your channel archiving needs."
+            `Hi there <@${uid}>, I'm <@A017AQA46BF|Archivist>! I can help you out with all of your channel archiving needs.`
         }
       },
       {

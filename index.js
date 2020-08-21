@@ -28,107 +28,119 @@ const checkOnlineRegex = /checkIfOnline/
  * Listens for POST from slack slash command
  */
 app.post('/slack/archive-init', async (req, res) => {
-  //use body-parser to grab userid and triggerid
-  let { user_id, trigger_id } = req.body
+	//use body-parser to grab userid and triggerid
+	let { user_id, trigger_id } = await req.body
+	console.log(req.body)
 
-  console.log(
-    `User ${user} opened the slash command modal with trigger ID ${trigger_id}`
-  )
-  if (!utils.checkSigningSecret(req)) {
+	console.log(
+		`User ${user_id} opened the slash command modal with trigger ID ${trigger_id}`
+	)
+	/*if (!utils.checkSigningSecret(req)) {
     //checks request to see that the HMAC is correct
     res.status(401).send('Unauthorized')
     throw 'UnauthedAttempt'
-  }
+  }*/
 
-  //send an immediate 200 to slack so they don't complain about timeouts
-  await res.status(200).send('')
+	//send an immediate 200 to slack so they don't complain about timeouts
+	await res.status(200).send('')
 
-  //opens a modal with the requestInit blocks - asking if they want to archive or unarchive
-  await wc.views.open({
-    token: process.env.SLACK_OAUTH_TOKEN,
-    trigger_id: trigger_id,
-    view: blocks.requestInit()
-  })
+	//opens a modal with the requestInit blocks - asking if they want to archive or unarchive
+	await wc.views.open({
+		token: process.env.SLACK_OAUTH_TOKEN,
+		trigger_id: trigger_id,
+		view: blocks.requestInit(user_id)
+	})
 })
 
 /**
  * Detects on any new slack message that it can see
  */
 slackEvents.on('message', async event => {
-  if (event.text.match(checkOnlineRegex)) {
-    await react(event.channel, 'heavy_check_mark', event.ts) //react with a thumbs up to confirm that the bot's online and alive
-  } else if (event.text.match(checkChannelsRegex)) {
-    console.log('Checking for outdated channels!')
-    const outdatedChannels = utils.getOldChannels
-    for (let i of outdatedChannels) {
-      utils.renameDeadChannel(i) //renames channel with zzz-
-      chat(
-        process.env.SLACK_ADMIN_CHANNEL,
-        `Archived <#${i}> due to inactivity`
-      ) //exlains the archive
-    }
-  }
+	//check if subtype deleted or changed
+	if (event.hasOwnProperty('subtype')) {
+		return;
+	}
+	//to check if the bot's online
+	if (event.text.match(checkOnlineRegex)) {
+		await utils.react(event.channel, 'heavy_check_mark', event.ts) //react with a thumbs up to confirm that the bot's online and alive
+	//the check for outdated channels one
+	} else if (event.text.match(checkChannelsRegex)) {
+		console.log('Checking for outdated channels!')
+		await utils.react(event.channel, 'beachball', event.ts)
+		const outdatedChannels = await utils.getOldChannels(7776000) // 7776000 seconds = 3 months
+		for await (const i of outdatedChannels) {
+			await utils.renameDeadChannel(i) //renames channel with zzz-
+			await utils.chat(
+				process.env.SLACK_ADMIN_CHANNEL,
+				`Archived <#${i}> due to inactivity`
+			) //exlains the archive
+			await utils.archiveChannel(i)
+		}
+		console.log('archive job done')
+		await utils.unreact(event.channel, 'beachball', event.ts)
+		await utils.react(event.channel, 'heavy_check_mark', event.ts)
+	}
 })
 
 /*
  * If the user requests an archive in the init menu
  */
 slackInteractions.action({ actionId: 'request_archive' }, async payload => {
-  console.log(payload)
-  console.log('user requested archive of a channel, sending to new payload')
-  await wc.views.push({
-    trigger_id: payload.trigger_id,
-    view: blocks.requestArchive()
-  })
+	console.log(payload)
+	console.log('user requested archive of a channel, sending to new payload')
+	await wc.views.push({
+		trigger_id: payload.trigger_id,
+		view: blocks.requestArchive()
+	})
 })
 
 /*
  * If the user requests an unarchive in the init menu
  */
 slackInteractions.action({ actionId: 'request_unarchive' }, async payload => {
-  console.log('user requested a channel unarchive')
+	console.log('user requested a channel unarchive')
 
-  //push unarchive payload
-  await wc.views.push({
-    trigger_id: payload.trigger_id,
-    view: blocks.requestUnarchive()
-  })
+	//push unarchive payload
+	await wc.views.push({
+		trigger_id: payload.trigger_id,
+		view: blocks.requestUnarchive()
+	})
 })
 
 /*
  * Checks for a view/submission of multiple types - currently just unarchive but will be more later
  */
 slackInteractions.viewSubmission(
-  { type: 'view_submission' },
-  async (payload, respond) => {
-    const block_id = await Object.keys(payload.view.state.values)[0] //dumb code for dumb api
+	{ type: 'view_submission' },
+	async (payload, respond) => {
+		const block_id = await Object.keys(payload.view.state.values)[0] //dumb code for dumb api
 
-    switch (block_id) {
-      case 'archive_channel_select_block': {
-        //do stuff - we have to figure out implemetation here before we can write the code
-        throw 'NotYetImplemented'
-      }
-      case 'unarchive_channel_input_block': {
-        const inputChannel = await payload.view.state.values[
-          block_id
-        ].unarchive_channel_input_action.value.replace('#', '') //removes "#" from the channel selector, if people put it in
-        const channelId = await utils.getChannelId(inputChannel)
-        await utils.unarchiveChannel(await channelId) //TODO - check if channel exists before unarchiving
-        await utils.chat(
-          channelId,
-          `<@${payload.user.id}> unarchived this channel! Welcome back, everyone :wave:`
-        )
-        return {
-          response_action: 'clear' //after unarchiving it will close the modal
-        }
-      }
-      default: {
-        return { response_action: 'clear' } //if the user submits with nothing in, the modal closes
-      }
-    }
-  }
+		switch (block_id) {
+			case 'archive_channel_select_block': {
+				//do stuff - we have to figure out implemetation here before we can write the code
+				throw 'NotYetImplemented'
+			}
+			case 'unarchive_channel_input_block': {
+				const inputChannel = await payload.view.state.values[
+					block_id
+				].unarchive_channel_input_action.value.replace('#', '') //removes "#" from the channel selector, if people put it in
+				const channelId = await utils.getChannelId(inputChannel)
+				await utils.unarchiveChannel(await channelId) //TODO - check if channel exists before unarchiving
+				await utils.chat(
+					channelId,
+					`<@${payload.user.id}> unarchived this channel! Welcome back, everyone :wave:`
+				)
+				return {
+					response_action: 'clear' //after unarchiving it will close the modal
+				}
+			}
+			default: {
+				return { response_action: 'clear' } //if the user submits with nothing in, the modal closes
+			}
+		}
+	}
 )
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log('listening')
+	console.log('listening')
 })
