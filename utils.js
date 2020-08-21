@@ -186,7 +186,7 @@ const getOldChannels = async age => {
       exclude_archived: true,
       types: 'public_channel'
     })) {
-      for (channel of page.channels) {
+      for (let channel of page.channels) {
         if (!channel.is_member) {
           await joinChannel(channel.id)
         }
