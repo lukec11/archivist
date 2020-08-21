@@ -28,14 +28,14 @@ const checkOnlineRegex = /checkIfOnline/
  * Listens for POST from slack slash command
  */
 app.post('/slack/archive-init', async (req, res) => {
-	//use body-parser to grab userid and triggerid
-	let { user_id, trigger_id } = await req.body
-	console.log(req.body)
+  //use body-parser to grab userid and triggerid
+  let { user_id, trigger_id } = await req.body
+  console.log(req.body)
 
-	console.log(
-		`User ${user_id} opened the slash command modal with trigger ID ${trigger_id}`
-	)
-	if (!utils.checkSigningSecret(req)) {
+  console.log(
+    `User ${user_id} opened the slash command modal with trigger ID ${trigger_id}`
+  )
+  if (!utils.checkSigningSecret(req)) {
     //checks request to see that the HMAC is correct
     res.status(401).send('Unauthorized')
     throw 'UnauthedAttempt'
