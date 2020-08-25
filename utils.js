@@ -36,7 +36,7 @@ const checkSigningSecret = req => {
  */
 const unarchiveChannel = async channelId => {
   return await wc.conversations.unarchive({
-    token: process.env.SLACK_OAUTH_TOKEN,
+    token: process.env.SLACK_ADMIN_TOKEN,
     channel: channelId
   })
 }
