@@ -207,8 +207,11 @@ const getOldChannels = async age => {
         if ((await lastMessage.messages.length) === 0) {
           console.log(
             `Couldn't calculate age of #${channel.name} (no messages), ignoring!`
-          );
-		  await chat(process.env.SLACK_ADMIN_CHANNEL, `Couldn't calculate age of <#${channel.id}> (no messages), ignoring!`);
+          )
+          await chat(
+            process.env.SLACK_ADMIN_CHANNEL,
+            `Couldn't calculate age of <#${channel.id}> (no messages), ignoring!`
+          )
           continue
         }
         const lastMessageTs = await lastMessage.messages[0].ts //gets the unix timestamp of the last message, in seconds
