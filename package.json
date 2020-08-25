@@ -18,7 +18,7 @@
     "prettier": "^2.0.5"
   },
   "scripts": {
-    "test": "node index.js"
+    "start": "node index.js"
   },
   "repository": {
     "type": "git",
