@@ -108,7 +108,7 @@ const requestInit = uid => {
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: `Hi there <@${uid}>, I'm <@A017AQA46BF|Archivist>! I can help you out with all of your channel archiving needs.`
+          text: `Hi there <@${uid}>, I'm <@U01982NKT42|Archivist>! I can help you out with all of your channel archiving needs.`
         }
       },
       {
