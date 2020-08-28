@@ -57,7 +57,8 @@ app.post('/slack/archive-init', async (req, res) => {
  */
 slackEvents.on('message', async event => {
   //check if subtype deleted or changed
-  if (event.hasOwnProperty('subtype')) {
+  if (event.hasOwnProperty('subtype') && event.subype != 'bot_message') {
+	// it will insta return on anything but a human or bot message
     return
   }
   //to check if the bot's online
