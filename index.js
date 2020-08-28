@@ -78,7 +78,7 @@ slackEvents.on('message', async event => {
       //exlains the archive
       await utils.chat(
         i,
-        `<#${i}> has been archived, due to inactivity. If you'd like to unarchive it, run the command \`/unarchive\`.`
+        `<#${i}> has been archived due to inactivity. If you'd like to unarchive it, run the command \`/unarchive\`.`
       )
       await utils.archiveChannel(i)
     }
