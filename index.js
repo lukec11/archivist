@@ -58,7 +58,7 @@ app.post('/slack/archive-init', async (req, res) => {
 slackEvents.on('message', async event => {
   //check if subtype deleted or changed
   if (event.hasOwnProperty('subtype')) {
-    const t = event.subtype;
+    const t = event.subtype
     if (t === 'message_edited' || t === 'message_deleted') {
       return
     }
